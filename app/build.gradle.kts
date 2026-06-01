@@ -11,8 +11,8 @@ android {
         applicationId = "com.vichat.app"
         minSdk = 24
         targetSdk = 34
-        versionCode = 11
-        versionName = "0.5.7"
+        versionCode = 12
+        versionName = "0.6.0"
     }
 
     buildFeatures {
@@ -46,4 +46,5 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
+    implementation("io.coil-kt:coil-compose:2.5.0")
 }

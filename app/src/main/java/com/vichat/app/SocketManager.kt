@@ -142,8 +142,10 @@ object SocketManager {
         }
     }
 
-    fun sendMessage(toUserId: Int, text: String) {
-        val data = gson.toJson(mapOf("toUserId" to toUserId, "text" to text))
+    fun sendMessage(toUserId: Int, text: String, replyToId: Int? = null) {
+        val map = mutableMapOf("toUserId" to toUserId, "text" to text)
+        if (replyToId != null) map["replyToId"] = replyToId
+        val data = gson.toJson(map)
         ws?.send("42" + "[\"private-message\",$data]")
     }
 

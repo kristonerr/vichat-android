@@ -164,6 +164,67 @@ object ApiClient {
         })
     }
 
+    fun changePassword(oldPassword: String, newPassword: String, callback: (Result<String>) -> Unit) {
+        val req = buildRequest("POST", "/api/change-password", mapOf("oldPassword" to oldPassword, "newPassword" to newPassword))
+        client.newCall(req).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: java.io.IOException) { callback(Result.failure(e)) }
+            override fun onResponse(call: Call, response: Response) {
+                try {
+                    val body = response.body?.string() ?: ""
+                    if (response.isSuccessful) callback(Result.success(body))
+                    else {
+                        val err = try { gson.fromJson(body, ErrorResponse::class.java)?.error ?: body } catch (_: Exception) { body }
+                        callback(Result.failure(Exception("HTTP ${response.code}: $err")))
+                    }
+                } catch (e: Exception) { callback(Result.failure(e)) }
+            }
+        })
+    }
+
+    fun deleteAccount(password: String, callback: (Result<String>) -> Unit) {
+        val req = buildRequest("DELETE", "/api/account", mapOf("password" to password))
+        client.newCall(req).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: java.io.IOException) { callback(Result.failure(e)) }
+            override fun onResponse(call: Call, response: Response) {
+                try {
+                    val body = response.body?.string() ?: ""
+                    if (response.isSuccessful) callback(Result.success(body))
+                    else {
+                        val err = try { gson.fromJson(body, ErrorResponse::class.java)?.error ?: body } catch (_: Exception) { body }
+                        callback(Result.failure(Exception("HTTP ${response.code}: $err")))
+                    }
+                } catch (e: Exception) { callback(Result.failure(e)) }
+            }
+        })
+    }
+
+    fun uploadAvatar(imageBytes: ByteArray, callback: (Result<String>) -> Unit) {
+        val body = MultipartBody.Builder()
+            .setType(MultipartBody.FORM)
+            .addFormDataPart("avatar", "avatar.jpg", imageBytes.toRequestBody("image/jpeg".toMediaType()))
+            .build()
+        val req = Request.Builder()
+            .url("$BASE_URL/api/upload-avatar")
+            .post(body)
+            .also { token?.let { t -> it.addHeader("Authorization", t) } }
+            .build()
+        client.newCall(req).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: java.io.IOException) { callback(Result.failure(e)) }
+            override fun onResponse(call: Call, response: Response) {
+                try {
+                    val body = response.body?.string() ?: ""
+                    if (response.isSuccessful) {
+                        val resp = gson.fromJson(body, java.util.Map::class.java)
+                        callback(Result.success(resp["avatarUrl"] as? String ?: ""))
+                    } else {
+                        val err = try { gson.fromJson(body, ErrorResponse::class.java)?.error ?: body } catch (_: Exception) { body }
+                        callback(Result.failure(Exception("HTTP ${response.code}: $err")))
+                    }
+                } catch (e: Exception) { callback(Result.failure(e)) }
+            }
+        })
+    }
+
     fun getMe(callback: (Result<User>) -> Unit) {
         val req = buildRequest("GET", "/api/me")
         client.newCall(req).enqueue(object : Callback {
