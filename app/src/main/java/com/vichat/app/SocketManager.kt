@@ -1,11 +1,9 @@
 package com.vichat.app
 
 import com.google.gson.Gson
-import com.google.gson.JsonArray
 import com.google.gson.JsonParser
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import okhttp3.*
 
 sealed class WsEvent {
@@ -26,12 +24,12 @@ object SocketManager {
     private val client = OkHttpClient.Builder().build()
     private var ws: WebSocket? = null
     private val gson = Gson()
-    private val _events = Channel<WsEvent>(Channel.UNLIMITED)
-    val events: Flow<WsEvent> = _events.receiveAsFlow()
+    private val _events = MutableSharedFlow<WsEvent>(extraBufferCapacity = 64)
+    val events: Flow<WsEvent> = _events
 
     fun connect(token: String) {
         val request = Request.Builder()
-            .url("$WS_BASE&token=$token")
+            .url(WS_BASE)
             .addHeader("Authorization", token)
             .build()
         ws = client.newWebSocket(request, object : WebSocketListener() {
@@ -44,11 +42,11 @@ object SocketManager {
             }
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-                _events.trySend(WsEvent.Error(t.message ?: "Connection failed"))
+                _events.tryEmit(WsEvent.Error(t.message ?: "Connection failed"))
             }
 
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
-                _events.trySend(WsEvent.Disconnected)
+                _events.tryEmit(WsEvent.Disconnected)
             }
         })
     }
@@ -65,11 +63,11 @@ object SocketManager {
             }
             text == "40" -> {
                 // Socket.IO connected (empty sid)
-                _events.trySend(WsEvent.Connected)
+                _events.tryEmit(WsEvent.Connected)
             }
             text.startsWith("40") && text.length > 2 -> {
                 // Socket.IO connected with sid
-                _events.trySend(WsEvent.Connected)
+                _events.tryEmit(WsEvent.Connected)
             }
             text.startsWith("42") -> {
                 try {
@@ -79,33 +77,33 @@ object SocketManager {
                     when (event) {
                         "private-message" -> {
                             val msg = gson.fromJson(data, Message::class.java)
-                            _events.trySend(WsEvent.MessageReceived(msg))
+                            _events.tryEmit(WsEvent.MessageReceived(msg))
                         }
                         "contacts-online" -> {
                             val onlineArr = data.asJsonArray
                             val ids = mutableListOf<Int>()
                             for (el in onlineArr) ids.add(el.asJsonObject.get("id").asInt)
-                            _events.trySend(WsEvent.ContactsOnline(ids))
+                            _events.tryEmit(WsEvent.ContactsOnline(ids))
                         }
                         "typing" -> {
                             val from = data.asJsonObject.get("fromUsername").asString
-                            _events.trySend(WsEvent.Typing(from))
+                            _events.tryEmit(WsEvent.Typing(from))
                         }
                         "stop-typing" -> {
-                            _events.trySend(WsEvent.StopTyping)
+                            _events.tryEmit(WsEvent.StopTyping)
                         }
                         "unread-update" -> {
                             val obj = data.asJsonObject
                             val fromUserId = obj.get("fromUserId").asInt
                             val count = obj.get("count").asInt
-                            _events.trySend(WsEvent.UnreadUpdate(fromUserId, count))
+                            _events.tryEmit(WsEvent.UnreadUpdate(fromUserId, count))
                         }
                         "message-edited" -> {
                             val obj = data.asJsonObject
-                            _events.trySend(WsEvent.MessageEdited(obj.get("id").asInt, obj.get("text").asString))
+                            _events.tryEmit(WsEvent.MessageEdited(obj.get("id").asInt, obj.get("text").asString))
                         }
                         "message-deleted" -> {
-                            _events.trySend(WsEvent.MessageDeleted(data.asJsonObject.get("id").asInt))
+                            _events.tryEmit(WsEvent.MessageDeleted(data.asJsonObject.get("id").asInt))
                         }
                     }
                 } catch (_: Exception) {}
