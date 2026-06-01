@@ -1,8 +1,11 @@
 package com.vichat.app
 
+import android.app.DownloadManager
 import android.content.Context
 import android.content.Intent
+import android.database.ContentObserver
 import android.net.Uri
+import android.os.Environment
 import android.os.Handler
 import android.os.Looper
 import android.widget.Toast
@@ -18,7 +21,6 @@ data class VersionInfo(
 
 object UpdateManager {
     private const val VERSION_URL = "http://157.22.206.163:3001/api/version"
-    private const val APK_BASE = "http://157.22.206.163:3001"
     private val client = OkHttpClient.Builder()
         .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
         .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
@@ -66,16 +68,21 @@ object UpdateManager {
     }
 
     fun downloadAndInstall(context: Context, apkUrl: String) {
-        val fullUrl = if (apkUrl.startsWith("http")) apkUrl else "$APK_BASE$apkUrl"
-        mainHandler.post {
-            try {
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(fullUrl)).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                }
-                context.startActivity(intent)
-            } catch (e: Exception) {
-                Toast.makeText(context, "Не могу открыть браузер: ${e.message}", Toast.LENGTH_LONG).show()
+        try {
+            val fullUrl = if (apkUrl.startsWith("http")) apkUrl else "http://157.22.206.163:3001$apkUrl"
+            val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+            val request = DownloadManager.Request(Uri.parse(fullUrl)).apply {
+                setTitle("ViChat")
+                setDescription("Скачиваю обновление...")
+                setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "vichat-v0.5.7.apk")
+                setAllowedOverMetered(true)
+                setAllowedOverRoaming(true)
             }
+            val downloadId = downloadManager.enqueue(request)
+            Toast.makeText(context, "Скачивание в фоне...", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(context, "Ошибка: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 }
