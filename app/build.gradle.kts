@@ -11,8 +11,8 @@ android {
         applicationId = "com.vichat.app"
         minSdk = 24
         targetSdk = 34
-        versionCode = 10
-        versionName = "0.5.6"
+        versionCode = 11
+        versionName = "0.5.7"
     }
 
     buildFeatures {
