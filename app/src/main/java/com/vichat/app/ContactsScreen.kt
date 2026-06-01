@@ -4,8 +4,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -164,33 +163,7 @@ fun ContactsScreen(
                     TextButton(onClick = { showSettingsDialog = true }) {
                         Text("⚙️", fontSize = 18.sp)
                     }
-                    TextButton(onClick = { showStatusDialog = true }) {
-                        Text(UserStatus.fromString(myStatus).emoji, fontSize = 18.sp)
-                    }
-                    TextButton(onClick = {
-                        PrefsManager.toggleTheme()
-                        (context as? android.app.Activity)?.recreate()
-                    }) { Text(if (isDark) "☀️" else "🌙", fontSize = 18.sp) }
                     TextButton(onClick = { showAddDialog = true }) { Text("+", color = colorScheme.onPrimary, fontSize = 22.sp) }
-                    TextButton(
-                        onClick = {
-                            checkingUpdate = true
-                            UpdateManager.checkUpdate(context) { result ->
-                                mainHandler.post {
-                                    checkingUpdate = false
-                                    result.fold(
-                                        onSuccess = { info ->
-                                            if (info != null) updateInfo = info
-                                            else Toast.makeText(context, "У тебя последняя версия!", Toast.LENGTH_SHORT).show()
-                                        },
-                                        onFailure = { Toast.makeText(context, "Ошибка: ${it.message}", Toast.LENGTH_LONG).show() }
-                                    )
-                                }
-                            }
-                        },
-                        enabled = !checkingUpdate
-                    ) { Text(if (checkingUpdate) "..." else "☰", color = colorScheme.onPrimary, fontSize = 18.sp) }
-                    TextButton(onClick = onLogout) { Text("Выйти", color = colorScheme.onPrimary, fontSize = 14.sp) }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = colorScheme.primary)
             )
@@ -455,7 +428,7 @@ fun ContactsScreen(
             onDismissRequest = { showSettingsDialog = false },
             title = { Text("Настройки", fontWeight = FontWeight.Bold) },
             text = {
-                Column {
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                     Row(
                         modifier = Modifier.fillMaxWidth().clickable { avatarPicker.launch("image/*") }.padding(vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -477,6 +450,52 @@ fun ContactsScreen(
                     }
                     Divider()
                     Row(
+                        modifier = Modifier.fillMaxWidth().clickable { showStatusDialog = true }.padding(vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(UserStatus.fromString(myStatus).emoji, fontSize = 18.sp)
+                        Spacer(Modifier.width(12.dp))
+                        Text("Статус: ${UserStatus.fromString(myStatus).label}", fontSize = 15.sp)
+                    }
+                    Divider()
+                    Row(
+                        modifier = Modifier.fillMaxWidth().clickable {
+                            PrefsManager.toggleTheme()
+                            (context as? android.app.Activity)?.recreate()
+                        }.padding(vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(if (isDark) "☀️" else "🌙", fontSize = 18.sp)
+                        Spacer(Modifier.width(12.dp))
+                        Text(if (isDark) "Светлая тема" else "Тёмная тема", fontSize = 15.sp)
+                    }
+                    Divider()
+                    Row(
+                        modifier = Modifier.fillMaxWidth().clickable {
+                            checkingUpdate = true; showSettingsDialog = false
+                            UpdateManager.checkUpdate(context) { result ->
+                                mainHandler.post {
+                                    checkingUpdate = false
+                                    result.fold(
+                                        onSuccess = { info ->
+                                            if (info != null) {
+                                                updateInfo = info
+                                                showSettingsDialog = true
+                                            } else Toast.makeText(context, "У тебя последняя версия!", Toast.LENGTH_SHORT).show()
+                                        },
+                                        onFailure = { Toast.makeText(context, "Ошибка: ${it.message}", Toast.LENGTH_LONG).show() }
+                                    )
+                                }
+                            }
+                        }.padding(vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(if (checkingUpdate) "⏳" else "☰", fontSize = 18.sp)
+                        Spacer(Modifier.width(12.dp))
+                        Text("Проверить обновления", fontSize = 15.sp)
+                    }
+                    Divider()
+                    Row(
                         modifier = Modifier.fillMaxWidth().clickable { showChangePassword = true }.padding(vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -492,6 +511,15 @@ fun ContactsScreen(
                         Text("🗑️", fontSize = 18.sp)
                         Spacer(Modifier.width(12.dp))
                         Text("Удалить аккаунт", fontSize = 15.sp, color = Color.Red)
+                    }
+                    Divider()
+                    Row(
+                        modifier = Modifier.fillMaxWidth().clickable { showSettingsDialog = false; onLogout() }.padding(vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("🚪", fontSize = 18.sp)
+                        Spacer(Modifier.width(12.dp))
+                        Text("Выйти", fontSize = 15.sp)
                     }
                 }
             },
