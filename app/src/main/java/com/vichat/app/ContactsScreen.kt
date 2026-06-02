@@ -52,6 +52,7 @@ fun ContactsScreen(
     var incomingRequests by remember { mutableStateOf<List<FriendRequest>>(emptyList()) }
     var showStatusDialog by remember { mutableStateOf(false) }
     var showSettingsDialog by remember { mutableStateOf(false) }
+    var showThemeDialog by remember { mutableStateOf(false) }
     var myAvatarUrl by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
     val mainHandler = remember { Handler(Looper.getMainLooper()) }
@@ -459,6 +460,15 @@ fun ContactsScreen(
                     }
                     Divider()
                     Row(
+                        modifier = Modifier.fillMaxWidth().clickable { showThemeDialog = true }.padding(vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("🎨", fontSize = 18.sp)
+                        Spacer(Modifier.width(12.dp))
+                        Text(appThemeFromKey(PrefsManager.themeKey).label, fontSize = 15.sp)
+                    }
+                    Divider()
+                    Row(
                         modifier = Modifier.fillMaxWidth().clickable {
                             PrefsManager.toggleTheme()
                             (context as? android.app.Activity)?.recreate()
@@ -524,6 +534,40 @@ fun ContactsScreen(
             },
             confirmButton = { TextButton(onClick = { showSettingsDialog = false }) { Text("Закрыть") } }
         )
+
+        if (showThemeDialog) {
+            val currentKey = PrefsManager.themeKey
+            AlertDialog(
+                onDismissRequest = { showThemeDialog = false },
+                title = { Text("Цветовая схема") },
+                text = {
+                    Column {
+                        AppTheme.entries.forEach { theme ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth().clickable {
+                                    PrefsManager.themeKey = theme.key
+                                    showThemeDialog = false
+                                    (context as? android.app.Activity)?.recreate()
+                                }.padding(vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = currentKey == theme.key,
+                                    onClick = {
+                                        PrefsManager.themeKey = theme.key
+                                        showThemeDialog = false
+                                        (context as? android.app.Activity)?.recreate()
+                                    }
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(theme.label, fontSize = 15.sp)
+                            }
+                        }
+                    }
+                },
+                confirmButton = { TextButton(onClick = { showThemeDialog = false }) { Text("Закрыть") } }
+            )
+        }
 
         if (showChangePassword) {
             var oldPw by remember { mutableStateOf("") }

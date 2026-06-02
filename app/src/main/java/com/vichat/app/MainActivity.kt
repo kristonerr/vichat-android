@@ -47,7 +47,8 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             var isDark by remember { mutableStateOf(PrefsManager.isDarkTheme) }
-            ViChatTheme(darkTheme = isDark) {
+            var themeKey by remember { mutableStateOf(PrefsManager.themeKey) }
+            ViChatTheme(darkTheme = isDark, themeKey = themeKey) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background

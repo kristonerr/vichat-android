@@ -9,6 +9,7 @@ object PrefsManager {
     private const val PREFS_NAME = "vichat_secure"
     private const val KEY_TOKEN = "token"
     private const val KEY_DARK_THEME = "dark_theme"
+    private const val KEY_THEME = "theme"
     private lateinit var prefs: SharedPreferences
 
     fun init(context: Context) {
@@ -40,6 +41,10 @@ object PrefsManager {
         isDarkTheme = new
         return new
     }
+
+    var themeKey: String
+        get() = prefs.getString(KEY_THEME, "blue_purple") ?: "blue_purple"
+        set(value) { prefs.edit().putString(KEY_THEME, value).apply() }
 
     fun clear() {
         prefs.edit().clear().apply()
