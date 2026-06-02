@@ -1,6 +1,9 @@
 package com.vichat.app
 
 import android.app.DownloadManager
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.database.Cursor
@@ -11,6 +14,7 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import android.widget.Toast
+import androidx.core.app.NotificationCompat
 import androidx.core.content.FileProvider
 import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
@@ -31,6 +35,8 @@ data class VersionInfo(
 
 object UpdateManager {
     private const val VERSION_URL = "http://157.22.206.163:3001/api/version"
+    private const val NOTIFICATION_CHANNEL = "vichat_updates"
+    private const val NOTIFICATION_ID = 1001
     private val client = OkHttpClient.Builder()
         .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
         .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
@@ -93,6 +99,8 @@ object UpdateManager {
             }
         }
 
+        createNotificationChannel(context)
+
         val fullUrl = if (apkUrl.startsWith("http")) apkUrl else "http://157.22.206.163:3001$apkUrl"
         val fileName = "vichat-update.apk"
 
@@ -147,6 +155,44 @@ object UpdateManager {
             setDataAndType(uri, "application/vnd.android.package-archive")
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
         }
-        context.startActivity(intent)
+
+        try {
+            context.startActivity(intent)
+        } catch (_: Exception) {
+        }
+
+        showInstallNotification(context, uri)
+    }
+
+    private fun showInstallNotification(context: Context, uri: Uri) {
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, "application/vnd.android.package-archive")
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            context, 0, intent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        val notification = NotificationCompat.Builder(context, NOTIFICATION_CHANNEL)
+            .setSmallIcon(android.R.drawable.stat_sys_download_done)
+            .setContentTitle("ViChat обновление готово")
+            .setContentText("Нажми чтобы установить")
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .build()
+        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        nm.notify(NOTIFICATION_ID, notification)
+    }
+
+    private fun createNotificationChannel(context: Context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                NOTIFICATION_CHANNEL, "Обновления ViChat",
+                NotificationManager.IMPORTANCE_HIGH
+            )
+            val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            nm.createNotificationChannel(channel)
+        }
     }
 }
