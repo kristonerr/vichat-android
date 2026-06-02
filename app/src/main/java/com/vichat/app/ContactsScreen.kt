@@ -480,7 +480,6 @@ fun ContactsScreen(
                                         onSuccess = { info ->
                                             if (info != null) {
                                                 updateInfo = info
-                                                showSettingsDialog = true
                                             } else Toast.makeText(context, "У тебя последняя версия!", Toast.LENGTH_SHORT).show()
                                         },
                                         onFailure = { Toast.makeText(context, "Ошибка: ${it.message}", Toast.LENGTH_LONG).show() }
