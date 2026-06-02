@@ -82,7 +82,7 @@ class MainActivity : ComponentActivity() {
                     LaunchedEffect(Unit) {
                         SocketManager.events.collect { event ->
                             if (event is WsEvent.MessageReceived) {
-                                if (event.msg.fromId != openChatContactId) {
+                                if (event.msg.fromId != openChatContactId && event.msg.fromId != ApiClient.currentUserId) {
                                     val username = try {
                                         ApiClient.getContactUsername(event.msg.fromId)
                                     } catch (_: Exception) { "ViChat" }
