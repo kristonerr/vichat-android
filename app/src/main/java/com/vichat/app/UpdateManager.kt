@@ -30,6 +30,7 @@ data class VersionInfo(
     val versionCode: Int,
     val versionName: String,
     val apkUrl: String,
+    val apkHash: String? = null,
     val changelog: String
 )
 
@@ -86,7 +87,7 @@ object UpdateManager {
         })
     }
 
-    fun downloadAndInstall(context: Context, apkUrl: String) {
+    fun downloadAndInstall(context: Context, apkUrl: String, expectedHash: String? = null) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             if (!context.packageManager.canRequestPackageInstalls()) {
                 val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
@@ -131,6 +132,13 @@ object UpdateManager {
                         val status = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))
                         when (status) {
                             DownloadManager.STATUS_SUCCESSFUL -> {
+                                val file = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), fileName)
+                                if (expectedHash != null && file.exists()) {
+                                    val actualHash = computeSha256(file)
+                                    if (actualHash != expectedHash) {
+                                        return@launch
+                                    }
+                                }
                                 installApk(context, fileName)
                                 return@launch
                             }
@@ -145,6 +153,20 @@ object UpdateManager {
         }
 
         mainHandler.post { Toast.makeText(context, "Скачивание...", Toast.LENGTH_SHORT).show() }
+    }
+
+    private fun computeSha256(file: File): String {
+        return try {
+            val digest = java.security.MessageDigest.getInstance("SHA-256")
+            file.inputStream().buffered().use { fis ->
+                val buffer = ByteArray(8192)
+                var read: Int
+                while (fis.read(buffer).also { read = it } != -1) {
+                    digest.update(buffer, 0, read)
+                }
+            }
+            digest.digest().joinToString("") { "%02x".format(it) }
+        } catch (_: Exception) { "" }
     }
 
     private fun installApk(context: Context, fileName: String) {

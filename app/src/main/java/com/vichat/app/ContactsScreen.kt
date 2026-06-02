@@ -342,7 +342,7 @@ fun ContactsScreen(
                 Button(onClick = {
                     val info = updateInfo ?: return@Button
                     updateInfo = null
-                    UpdateManager.downloadAndInstall(context, info.apkUrl)
+                    UpdateManager.downloadAndInstall(context, info.apkUrl, info.apkHash)
                 }) { Text("Обновить") }
             },
             dismissButton = { TextButton(onClick = { updateInfo = null }) { Text("Позже") } }
