@@ -8,6 +8,7 @@ import androidx.security.crypto.MasterKey
 object PrefsManager {
     private const val PREFS_NAME = "vichat_secure"
     private const val KEY_TOKEN = "token"
+    private const val KEY_REFRESH_TOKEN = "refresh_token"
     private const val KEY_DARK_THEME = "dark_theme"
     private const val KEY_THEME = "theme"
     private lateinit var prefs: SharedPreferences
@@ -31,6 +32,12 @@ object PrefsManager {
     }
 
     fun getToken(): String? = prefs.getString(KEY_TOKEN, null)
+
+    fun saveRefreshToken(token: String) {
+        prefs.edit().putString(KEY_REFRESH_TOKEN, token).apply()
+    }
+
+    fun getRefreshToken(): String? = prefs.getString(KEY_REFRESH_TOKEN, null)
 
     var isDarkTheme: Boolean
         get() = prefs.getBoolean(KEY_DARK_THEME, false)

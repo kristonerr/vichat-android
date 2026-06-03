@@ -62,6 +62,7 @@ class MainActivity : ComponentActivity() {
                         val token = PrefsManager.getToken()
                         if (token != null) {
                             ApiClient.token = token
+                            ApiClient.refreshToken = PrefsManager.getRefreshToken()
                             ApiClient.getMe { result ->
                                 mainHandler.post {
                                     if (result.isSuccess) {
@@ -106,6 +107,7 @@ class MainActivity : ComponentActivity() {
                                     SocketManager.disconnect()
                                     PrefsManager.clear()
                                     ApiClient.token = null
+                                    ApiClient.refreshToken = null
                                     currentScreen = "login"
                                 }
                             )

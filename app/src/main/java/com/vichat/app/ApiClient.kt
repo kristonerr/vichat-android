@@ -15,6 +15,7 @@ object ApiClient {
     private val gson = Gson()
     private val JSON_MEDIA = "application/json".toMediaType()
     var token: String? = null
+    var refreshToken: String? = null
     var currentUserId: Int = 0
     val contactNames = mutableMapOf<Int, String>()
 
@@ -27,6 +28,29 @@ object ApiClient {
             .method(method, jsonBody?.toRequestBody(JSON_MEDIA))
             .also { token?.let { t -> it.addHeader("Authorization", t) } }
             .build()
+    }
+
+    fun refreshAccessToken(callback: (Result<String>) -> Unit) {
+        val rt = refreshToken ?: return callback(Result.failure(Exception("no refresh token")))
+        val req = Request.Builder()
+            .url("$BASE_URL/api/refresh")
+            .post("""{"refreshToken":"$rt"}""".toRequestBody(JSON_MEDIA))
+            .build()
+        client.newCall(req).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: java.io.IOException) { callback(Result.failure(e)) }
+            override fun onResponse(call: Call, response: Response) {
+                try {
+                    val body = response.body?.string() ?: ""
+                    if (response.isSuccessful) {
+                        val resp = gson.fromJson(body, java.util.Map::class.java)
+                        val newToken = resp["accessToken"] as? String ?: ""
+                        token = newToken
+                        PrefsManager.saveToken(newToken)
+                        callback(Result.success(newToken))
+                    } else { callback(Result.failure(Exception("refresh failed"))) }
+                } catch (e: Exception) { callback(Result.failure(e)) }
+            }
+        })
     }
 
     fun register(username: String, password: String, callback: (Result<AuthResponse>) -> Unit) {
@@ -236,6 +260,24 @@ object ApiClient {
                         val user = gson.fromJson(body, User::class.java)
                         currentUserId = user.id
                         callback(Result.success(user))
+                    } else if (response.code == 401 && refreshToken != null) {
+                        refreshAccessToken { result ->
+                            if (result.isSuccess) {
+                                val retry = buildRequest("GET", "/api/me")
+                                client.newCall(retry).enqueue(object : Callback {
+                                    override fun onFailure(c: Call, e: java.io.IOException) { callback(Result.failure(e)) }
+                                    override fun onResponse(c: Call, r: Response) {
+                                        try {
+                                            val b = r.body?.string() ?: ""
+                                            if (r.isSuccessful) {
+                                                val u = gson.fromJson(b, User::class.java)
+                                                currentUserId = u.id; callback(Result.success(u))
+                                            } else { callback(Result.failure(Exception("HTTP ${r.code}"))) }
+                                        } catch (e: Exception) { callback(Result.failure(e)) }
+                                    }
+                                })
+                            } else { callback(Result.failure(Exception("session expired"))) }
+                        }
                     } else {
                         val err = try { gson.fromJson(body, ErrorResponse::class.java)?.error ?: body } catch (_: Exception) { body }
                         callback(Result.failure(Exception("HTTP ${response.code}: $err")))

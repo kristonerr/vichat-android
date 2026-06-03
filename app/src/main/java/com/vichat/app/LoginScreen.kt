@@ -102,11 +102,13 @@ fun LoginScreen(onLogin: (String) -> Unit) {
                             mainHandler.post {
                                 result.fold(
                                     onSuccess = {
-                                        ApiClient.token = it.token
+                                    ApiClient.token = it.accessToken
+                                        ApiClient.refreshToken = it.refreshToken
                                         ApiClient.currentUserId = it.user.id
-                                        PrefsManager.saveToken(it.token)
+                                        PrefsManager.saveToken(it.accessToken)
+                                        PrefsManager.saveRefreshToken(it.refreshToken)
                                         loading = false
-                                        onLogin(it.token)
+                                        onLogin(it.accessToken)
                                     },
                                     onFailure = {
                                         error = it.message ?: "Ошибка (${it::class.simpleName})"

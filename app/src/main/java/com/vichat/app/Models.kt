@@ -1,7 +1,7 @@
 package com.vichat.app
 
 data class User(val id: Int, val username: String, val color: String?, val avatarUrl: String? = null)
-data class AuthResponse(val token: String, val user: User)
+data class AuthResponse(val accessToken: String, val refreshToken: String, val user: User)
 data class ErrorResponse(val error: String?)
 data class Message(val id: Int = 0, val fromId: Int, val text: String, val time: String?, val readAt: String? = null, val replyToId: Int? = null, val replyTo: ReplyPreview? = null)
 data class ReplyPreview(val id: Int, val text: String, val fromId: Int)
